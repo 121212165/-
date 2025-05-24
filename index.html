@@ -289,13 +289,13 @@
             reader.readAsDataURL(event.target.files[0]);
         }
 
-        function analyzeText() {
+        async function analyzeText() {
             const text = document.getElementById('textContent').value;
             const analysisResultsDiv = document.getElementById('analysisResults');
             const modificationSuggestionsDiv = document.getElementById('modificationSuggestions');
             const resourceRecommendationsDiv = document.getElementById('resourceRecommendations');
 
-            analysisResultsDiv.innerHTML = ''; // 清空旧结果
+            analysisResultsDiv.innerHTML = '<p>正在分析中，请稍候...</p>';
             modificationSuggestionsDiv.innerHTML = '';
             resourceRecommendationsDiv.innerHTML = '';
 
@@ -304,80 +304,131 @@
                 return;
             }
 
-            let processedText = text;
-            let suggestionsHTML = '<ul>';
-            let resourcesHTML = '<ul>';
+            try {
+                const response = await fetch('/api/analyze-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                });
 
-            // 1. 错别字和用词 (简单模拟)
-            const typos = [
-                { wrong: '好看', right: '出众', type: 'typo', reason: '“好看”略显平淡，可尝试“出众”以增强吸引力。' },
-                { wrong: '非常', right: '格外', type: 'typo', reason: '“非常”使用较多，可替换为“格外”等。' },
-                { wrong: '推荐给大加', right: '推荐给大家', type: 'typo', reason: '错别字：“大加”应为“大家”。'}
-            ];
-            
-            typos.forEach(typo => {
-                if (text.includes(typo.wrong)) {
-                    processedText = processedText.replace(new RegExp(typo.wrong, 'g'), 
-                        `<span class="highlight-typo tooltip">${typo.wrong}<span class="tooltiptext">建议修改为：${typo.right} (${typo.reason})</span></span>`);
-                    suggestionsHTML += `<li>检测到“${typo.wrong}”，建议修改为“${typo.right}”。原因：${typo.reason}</li>`;
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
-            });
 
-            // 2. 规则错误 (违禁词，简单模拟)
-            const forbiddenWords = [
-                { word: '第一', type: 'rule', reason: '“第一”可能违反广告法中关于绝对化用语的规定。', suggestion: '避免使用，或替换为“领先”、“优质”等。' },
-                { word: '最好', type: 'rule', reason: '“最好”属于绝对化表述，存在合规风险。', suggestion: '可修改为“更佳选择之一”或具体描述优点。' },
-                { word: '100%有效', type: 'rule', reason: '“100%有效”涉及功效保证，风险较高。', suggestion: '建议提供数据支持或修改为更严谨的表述。'}
-            ];
+                const result = await response.json();
+                const data = result.data;
 
-            forbiddenWords.forEach(fw => {
-                if (text.includes(fw.word)) {
-                    processedText = processedText.replace(new RegExp(fw.word, 'g'), 
-                        `<span class="highlight-forbidden tooltip">${fw.word}<span class="tooltiptext">违禁词提示：${fw.reason}</span></span>`);
-                    suggestionsHTML += `<li class="error-rule">检测到疑似违禁词“${fw.word}”。原因：${fw.reason} 建议：${fw.suggestion}</li>`;
-                    resourcesHTML += `<li>关于“${fw.word}”的使用，请参考《广告法》中关于绝对化用语的条款。</li>`;
+                // 显示原文及AI标注 (此部分需要根据AI返回的具体格式来调整高亮逻辑)
+                // 简单示例：直接显示AI返回的分析，或根据错误/建议高亮原文
+                let processedText = text;
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(err => {
+                        const highlightClass = err.type === 'typo' ? 'highlight-typo' : 'highlight-forbidden';
+                        // 注意：简单的replace可能不适用于复杂情况，需要更健壮的文本处理
+                        if (processedText.includes(err.text)) {
+                           processedText = processedText.replace(new RegExp(escapeRegExp(err.text), 'g'), 
+                                `<span class="${highlightClass} tooltip">${err.text}<span class="tooltiptext">${err.suggestion || err.reason}</span></span>`);
+                        }
+                    });
                 }
-            });
-            
-            // 模拟虚假内容检测
-            if (text.includes("保证你年轻十岁")) {
-                processedText = processedText.replace("保证你年轻十岁", 
-                    `<span class="highlight-forbidden tooltip">保证你年轻十岁<span class="tooltiptext">虚假宣传提示：此类承诺缺乏科学依据，风险极高。</span></span>`);
-                suggestionsHTML += `<li class="error-rule">检测到疑似虚假宣传“保证你年轻十岁”。原因：此类承诺缺乏科学依据，风险极高。建议删除或修改。</li>`;
-                resourcesHTML += `<li>了解更多关于化妆品虚假宣传的界定标准。</li>`;
-            }
+                analysisResultsDiv.innerHTML = `<p><strong>原文（带标注）：</strong></p><div>${processedText}</div>`;
 
-            analysisResultsDiv.innerHTML = `<p><strong>原文（带标注）：</strong></p><div>${processedText}</div>`;
-            
-            if (suggestionsHTML === '<ul>') {
-                suggestionsHTML += '<li>暂无具体修改建议。</li>';
-            }
-            suggestionsHTML += '</ul>';
-            modificationSuggestionsDiv.innerHTML = suggestionsHTML;
+                let suggestionsHTML = '<ul>';
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(err => {
+                        suggestionsHTML += `<li class="${err.type === 'typo' ? 'error-typo' : 'error-rule'}">检测到“${err.text}”。${err.reason ? `原因：${err.reason}` : ''} ${err.suggestion ? `建议：${err.suggestion}`: ''}</li>`;
+                    });
+                }
+                if (data.suggestions && data.suggestions.length > 0) {
+                    data.suggestions.forEach(sug => {
+                        suggestionsHTML += `<li>针对“${sug.original}”，改进建议：“${sug.improved}”。原因：${sug.reason}</li>`;
+                    });
+                }
+                if (suggestionsHTML === '<ul>') {
+                    suggestionsHTML += '<li>暂无具体修改建议。</li>';
+                }
+                suggestionsHTML += '</ul>';
+                modificationSuggestionsDiv.innerHTML = suggestionsHTML;
 
-            if (resourcesHTML === '<ul>') {
-                resourcesHTML += '<li>暂无相关资料推荐。</li>';
+                let resourcesHTML = '<ul>';
+                if (data.resources && data.resources.length > 0) {
+                    data.resources.forEach(res => {
+                        resourcesHTML += `<li>${res}</li>`;
+                    });
+                }
+                if (data.compliance && data.compliance.issues && data.compliance.issues.length > 0){
+                    resourcesHTML += `<li>合规性问题：${data.compliance.issues.join(', ')} (评分: ${data.compliance.score || 'N/A'})</li>`;
+                }
+                if (resourcesHTML === '<ul>') {
+                    resourcesHTML += '<li>暂无相关资料推荐。</li>';
+                }
+                resourcesHTML += '</ul>';
+                resourceRecommendationsDiv.innerHTML = resourcesHTML;
+
+            } catch (error) {
+                console.error('分析失败:', error);
+                analysisResultsDiv.innerHTML = `<p class="error-rule">分析失败：${error.message}</p>`;
             }
-            resourcesHTML += '</ul>';
-            resourceRecommendationsDiv.innerHTML = resourcesHTML;
         }
 
-        function analyzeImageAndText() {
+        // Helper function to escape regex special characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+        }
+
+
+        async function analyzeImageAndText() {
             const imageFile = document.getElementById('imageUpload').files[0];
             const text = document.getElementById('imageRelatedText').value;
             const resultsDiv = document.getElementById('imageAnalysisResults');
 
-            let message = "<p><strong>图文分析（概念）：</strong></p>";
-            if (imageFile) {
-                message += `<p>图片：${imageFile.name} (已上传)</p>`;
-            }
-            if (text.trim()) {
-                message += `<p>相关文字：“${text}”</p>`;
-            }
-            message += "<p class='suggestion'>模拟分析：图片风格与文字描述匹配度良好。文字中未发现明显违规信息。</p>";
-            message += "<p class='error-rule'>提示：实际图文分析需要复杂的AI模型（如OCR识别图片文字、图像内容理解、图文相关性判断等），此处仅为流程演示。</p>"
+            resultsDiv.innerHTML = '<p>正在分析中，请稍候...</p>';
 
-            resultsDiv.innerHTML = message;
+            if (!imageFile) {
+                resultsDiv.innerHTML = '<p class="error-rule">请先上传图片。</p>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            formData.append('text', text);
+
+            try {
+                const response = await fetch('/api/analyze-image-text', {
+                    method: 'POST',
+                    body: formData, // FormData会自动设置Content-Type为multipart/form-data
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const data = result.data; // 后端返回的已经是JSON对象了
+
+                let analysisHTML = '<p><strong>图文分析结果：</strong></p>';
+                // 根据AI返回的实际图文分析结果来展示，这里仅作示例
+                if (typeof data === 'object' && data !== null) {
+                    analysisHTML += '<ul>';
+                    for (const key in data) {
+                        if (Object.hasOwnProperty.call(data, key)) {
+                            analysisHTML += `<li><strong>${key}:</strong> ${JSON.stringify(data[key])}</li>`;
+                        }
+                    }
+                    analysisHTML += '</ul>';
+                } else {
+                    analysisHTML += `<p>${data}</p>`; // 如果返回的是简单文本
+                }
+                resultsDiv.innerHTML = analysisHTML;
+
+            } catch (error) {
+                console.error('图文分析失败:', error);
+                resultsDiv.innerHTML = `<p class="error-rule">图文分析失败：${error.message}</p>`;
+            }
         }
 
         // 默认打开第一个tab
