@@ -57,8 +57,7 @@ git push -u origin main
 4. **环境变量配置**
    在Vercel项目设置中添加以下环境变量：
    ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_BASE_URL=your_openai_base_url_here
+   DASHSCOPE_API_KEY=sk-d0bef4ed52514a8d83b37f1abdc91692
    PORT=3000
    ```
 
