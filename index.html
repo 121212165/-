@@ -125,6 +125,41 @@
             max-height: 200px;
             margin-top: 10px;
         }
+        .example-buttons {
+            margin-bottom: 10px;
+        }
+        .example-btn {
+            background-color: #f8d7e8;
+            color: #333;
+            padding: 5px 10px;
+            margin-right: 5px;
+            border: 1px solid #d63384;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .example-btn:hover {
+            background-color: #f0b6d3;
+        }
+        .action-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .before-after {
+            display: flex;
+            gap: 20px;
+        }
+        .before-after > div {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .before-after h4 {
+            margin-top: 0;
+            color: #d63384;
+        }
     </style>
 </head>
 <body>
@@ -142,6 +177,11 @@
             <h2>文字内容输入与分析</h2>
             <div class="section">
                 <p>在此处输入或粘贴您的美妆文案、评论、广告词等：</p>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadExample(1)">示例1: 违规词</button>
+                    <button class="example-btn" onclick="loadExample(2)">示例2: 夸大效果</button>
+                    <button class="example-btn" onclick="loadExample(3)">示例3: 赛题案例</button>
+                </div>
                 <textarea id="textContent" placeholder="例如：这款口红的颜色非常好看，质地丝滑，持久不脱妆，强烈推荐给大家！"></textarea>
                 <button onclick="analyzeText()">开始分析</button>
             </div>
@@ -157,6 +197,20 @@
                 <h3>修改建议与标注：</h3>
                 <div id="modificationSuggestions" class="results-area">
                     <p>修改建议将在此显示...</p>
+                </div>
+                <div class="action-buttons" style="display:none;" id="actionButtons">
+                    <button onclick="applyAllSuggestions()">一键应用所有建议</button>
+                    <button onclick="showBeforeAfter()">查看修改前后对比</button>
+                </div>
+                <div class="before-after" style="display:none;" id="beforeAfterComparison">
+                    <div>
+                        <h4>修改前</h4>
+                        <div id="beforeText"></div>
+                    </div>
+                    <div>
+                        <h4>修改后</h4>
+                        <div id="afterText"></div>
+                    </div>
                 </div>
             </div>
 
@@ -216,7 +270,7 @@
                 <h4>2. 规则符合性审查</h4>
                 <ul>
                     <li><strong>违禁词检测：</strong>维护并持续更新美妆行业及广告法相关的违禁词库。高亮显示违禁词并提示风险。</li>
-                    <li><strong>虚假/夸大内容识别：</strong>通过关键词、句式分析，识别可能存在的虚假宣传或功效夸大描述。例如，“立即见效”、“100%有效”等。</li>
+                    <li><strong>虚假/夸大内容识别：</strong>通过关键词、句式分析，识别可能存在的虚假宣传或功效夸大描述。例如，"立即见效"、"100%有效"等。</li>
                     <li><strong>明显暗示与擦边球：</strong>结合上下文和语义理解，尝试识别可能存在的违规暗示。 (此部分难度较高，初期以明确规则为主)</li>
                     <li><strong>文化差异提醒：</strong>针对多语言场景，内置常见文化习俗和禁忌提醒。 (高级功能)</li>
                 </ul>
@@ -231,9 +285,9 @@
                 <h4>4. 交互界面 (美+...)</h4>
                 <p>界面设计追求简洁、专业且具有美感。采用柔和的色彩搭配，清晰的功能分区，直观的操作流程。交互上注重反馈的及时性和友好性。</p>
                 <ul>
-                    <li><strong>“美 + 智能”：</strong> 体现在UI的美观度和AI分析的智能性。</li>
-                    <li><strong>“美 + 高效”：</strong> 通过流畅的交互和精准的分析，提升用户工作效率。</li>
-                    <li><strong>“美 + 合规”：</strong> 帮助用户创作既美观又符合规范的内容。</li>
+                    <li><strong>"美 + 智能"：</strong> 体现在UI的美观度和AI分析的智能性。</li>
+                    <li><strong>"美 + 高效"：</strong> 通过流畅的交互和精准的分析，提升用户工作效率。</li>
+                    <li><strong>"美 + 合规"：</strong> 帮助用户创作既美观又符合规范的内容。</li>
                 </ul>
 
                 <h4>5. 多语言、多智能体、多模态、多嵌入式 (远期规划)</h4>
@@ -252,12 +306,12 @@
                 <h3>原型交互说明</h3>
                 <p>当前原型主要演示核心的文本分析流程：</p>
                 <ol>
-                    <li>用户在“文字内容输入”区域输入文本。</li>
-                    <li>点击“开始分析”按钮。</li>
-                    <li>“分析结果”区域将以高亮等形式展示识别出的问题（如错别字、疑似违禁词）。</li>
-                    <li>“修改建议与标注”区域会针对问题给出具体的修改意见。</li>
-                    <li>“相关资料推荐”区域会根据内容和问题，提供参考信息。</li>
-                    <li>“图文内容分析”标签页提供了一个概念性的图片上传和关联文本输入界面，实际的图文联合分析需要更复杂的后端支持，此处仅作演示。</li>
+                    <li>用户在"文字内容输入"区域输入文本。</li>
+                    <li>点击"开始分析"按钮。</li>
+                    <li>"分析结果"区域将以高亮等形式展示识别出的问题（如错别字、疑似违禁词）。</li>
+                    <li>"修改建议与标注"区域会针对问题给出具体的修改意见。</li>
+                    <li>"相关资料推荐"区域会根据内容和问题，提供参考信息。</li>
+                    <li>"图文内容分析"标签页提供了一个概念性的图片上传和关联文本输入界面，实际的图文联合分析需要更复杂的后端支持，此处仅作演示。</li>
                 </ol>
             </div>
         </div>
@@ -288,6 +342,28 @@
             }
             reader.readAsDataURL(event.target.files[0]);
         }
+
+        // 加载示例文本
+        function loadExample(exampleNum) {
+            const textArea = document.getElementById('textContent');
+            switch(exampleNum) {
+                case 1:
+                    textArea.value = "这款美白精华是我用过最好的产品，能够彻底祛斑，100%安全无害，适合所有肤质，使用后立即见效，肌肤白皙透亮，完全根治黑色素沉淀问题。";
+                    break;
+                case 2:
+                    textArea.value = "我们的抗皱面霜采用纯天然成分，无任何副作用，一周内可以明显去除所有皱纹，让你重返18岁少女肌，效果持久永不反弹，是市面上最有效的抗衰老产品。";
+                    break;
+                case 3:
+                    textArea.value = "生活需要妆，美丽不打烊！但凡精制的女生，都不会放弃自我管理。脸蛋只有一张，精制一点又何妨？用了这款特效面霜，我的肌肤就像剥了壳的鸡蛋一样立刻变白，色斑色块全部消失，仿佛皮肤吃了仙丹一样，一夜见效，完全无副作用，效果简直绝绝子！";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // 存储分析结果
+        let currentAnalysisResult = null;
+        let improvedText = null;
 
         async function analyzeText() {
             const text = document.getElementById('textContent').value;
@@ -320,6 +396,7 @@
 
                 const result = await response.json();
                 const data = result.data;
+                currentAnalysisResult = data; // 存储分析结果
 
                 // 显示原文及AI标注 (此部分需要根据AI返回的具体格式来调整高亮逻辑)
                 // 简单示例：直接显示AI返回的分析，或根据错误/建议高亮原文
@@ -339,12 +416,12 @@
                 let suggestionsHTML = '<ul>';
                 if (data.errors && data.errors.length > 0) {
                     data.errors.forEach(err => {
-                        suggestionsHTML += `<li class="${err.type === 'typo' ? 'error-typo' : 'error-rule'}">检测到“${err.text}”。${err.reason ? `原因：${err.reason}` : ''} ${err.suggestion ? `建议：${err.suggestion}`: ''}</li>`;
+                        suggestionsHTML += `<li class="${err.type === 'typo' ? 'error-typo' : 'error-rule'}">检测到"${err.text}"。${err.reason ? `原因：${err.reason}` : ''} ${err.suggestion ? `建议：${err.suggestion}`: ''}</li>`;
                     });
                 }
                 if (data.suggestions && data.suggestions.length > 0) {
                     data.suggestions.forEach(sug => {
-                        suggestionsHTML += `<li>针对“${sug.original}”，改进建议：“${sug.improved}”。原因：${sug.reason}</li>`;
+                        suggestionsHTML += `<li>针对"${sug.original}"，改进建议："${sug.improved}"。原因：${sug.reason}</li>`;
                     });
                 }
                 if (suggestionsHTML === '<ul>') {
@@ -356,7 +433,11 @@
                 let resourcesHTML = '<ul>';
                 if (data.resources && data.resources.length > 0) {
                     data.resources.forEach(res => {
-                        resourcesHTML += `<li>${res}</li>`;
+                        if (typeof res === 'object' && res !== null) {
+                            resourcesHTML += `<li><strong>${res.title || '资源'}</strong> (${res.type || '类型'}): ${res.relevance || '相关资源'}</li>`;
+                        } else {
+                            resourcesHTML += `<li>${res}</li>`;
+                        }
                     });
                 }
                 if (data.compliance && data.compliance.issues && data.compliance.issues.length > 0){
@@ -367,6 +448,22 @@
                 }
                 resourcesHTML += '</ul>';
                 resourceRecommendationsDiv.innerHTML = resourcesHTML;
+
+                // 显示操作按钮
+                document.getElementById('actionButtons').style.display = 'flex';
+                document.getElementById('beforeAfterComparison').style.display = 'none';
+                
+                // 存储原始文本
+                document.getElementById('beforeText').innerHTML = text;
+
+                // 使用API返回的完整修改后文案（如果有）
+                if (data.improved_full_text) {
+                    improvedText = data.improved_full_text;
+                    document.getElementById('afterText').innerHTML = improvedText;
+                } else {
+                    // 否则尝试生成改进后的文本
+                    improveText(text, data);
+                }
 
             } catch (error) {
                 console.error('分析失败:', error);
@@ -379,6 +476,46 @@
             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
         }
 
+        // 生成改进后的文本
+        function improveText(originalText, analysisData) {
+            let text = originalText;
+            
+            // 应用错误修改
+            if (analysisData.errors && analysisData.errors.length > 0) {
+                analysisData.errors.forEach(err => {
+                    if (err.suggestion) {
+                        text = text.replace(new RegExp(escapeRegExp(err.text), 'g'), err.suggestion);
+                    }
+                });
+            }
+            
+            // 应用建议修改
+            if (analysisData.suggestions && analysisData.suggestions.length > 0) {
+                analysisData.suggestions.forEach(sug => {
+                    if (sug.improved) {
+                        text = text.replace(new RegExp(escapeRegExp(sug.original), 'g'), sug.improved);
+                    }
+                });
+            }
+            
+            improvedText = text;
+            document.getElementById('afterText').innerHTML = text;
+        }
+
+        // 一键应用所有建议
+        function applyAllSuggestions() {
+            if (improvedText) {
+                document.getElementById('textContent').value = improvedText;
+                alert("已应用所有修改建议！");
+            } else {
+                alert("没有可应用的修改建议。");
+            }
+        }
+
+        // 显示修改前后对比
+        function showBeforeAfter() {
+            document.getElementById('beforeAfterComparison').style.display = 'flex';
+        }
 
         async function analyzeImageAndText() {
             const imageFile = document.getElementById('imageUpload').files[0];
